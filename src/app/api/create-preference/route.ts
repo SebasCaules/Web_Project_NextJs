@@ -11,12 +11,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     type Item = {
+        id: string | number; // <-- esto es lo nuevo
         name: string;
         price: number;
         quantity: number;
     };
 
     const items = (body.items as Item[]).map((item) => ({
+        id: String(item.id), // <- esto es lo que faltaba
         title: item.name,
         quantity: item.quantity,
         unit_price: item.price,
