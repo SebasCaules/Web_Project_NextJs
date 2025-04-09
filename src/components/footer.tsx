@@ -36,7 +36,7 @@ export default function Footer() {
                     <form className="flex flex-col gap-3">
                         <Input placeholder="Email" className="bg-[#001F3F] border border-gray-300 text-white" />
                         <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4">
-                            LET'S DO IT
+                            LETS DO IT
                         </button>
                     </form>
                     <p className="text-xs text-gray-400 mt-3">
