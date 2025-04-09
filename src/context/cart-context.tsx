@@ -9,7 +9,7 @@ export type CartItem = {
     quantity: number;
     image: string;
     isSubscription?: boolean;
-    interval?: number; // en meses
+    interval?: number;
 };
 
 type CartContextType = {
@@ -22,24 +22,36 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-    const [cart, setCart] = useState<CartItem[]>(() => {
-        if (typeof window === "undefined") return [];
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    // Solo leer localStorage una vez que el componente está montado
+    useEffect(() => {
         try {
             const stored = localStorage.getItem("cart");
-            return stored ? JSON.parse(stored) : [];
+            if (stored) {
+                setCart(JSON.parse(stored));
+            }
         } catch {
-            return [];
+            setCart([]);
         }
-    });
+        setIsHydrated(true);
+    }, []);
 
+    // Guardar el carrito en localStorage cuando cambie
     useEffect(() => {
-        localStorage.setItem("cart", JSON.stringify(cart)); // Solo se actualiza cuando cart cambia
-    }, [cart]);
+        if (isHydrated) {
+            localStorage.setItem("cart", JSON.stringify(cart));
+        }
+    }, [cart, isHydrated]);
 
     const addToCart = (item: CartItem) => {
         setCart((prev) => {
             const existing = prev.find(
-                (p) => p.id === item.id && p.isSubscription === item.isSubscription && p.interval === item.interval
+                (p) =>
+                    p.id === item.id &&
+                    p.isSubscription === item.isSubscription &&
+                    p.interval === item.interval
             );
             if (existing) {
                 return prev.map((p) =>
@@ -60,7 +72,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     const clearCart = () => {
-        setCart([]); // Se limpia el carrito directamente
+        setCart([]);
     };
 
     return (

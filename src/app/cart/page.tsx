@@ -1,131 +1,204 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 export default function CartPage() {
     const { cart, addToCart, removeFromCart, clearCart } = useCart();
+    const [loading, setLoading] = useState(false);
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const taxes = Math.round(subtotal * 0.15 * 100) / 100; // 15% tax
-    const total = Math.round((subtotal + taxes) * 100) / 100;
-
-    const [loading, setLoading] = useState(false);
+    const remainingForFreeShipping = Math.max(0, 18 - subtotal);
+    const total = subtotal;
 
     const handleQuantityChange = (itemId: number, quantity: number) => {
         if (quantity < 1) return;
-
         const item = cart.find((p) => p.id === itemId);
         if (!item) return;
-
-        removeFromCart(itemId); // Remove old
-        addToCart({ ...item, quantity }); // Add updated
+        removeFromCart(itemId);
+        addToCart({ ...item, quantity });
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         setLoading(true);
-        clearCart();  // Clear cart before redirecting
-        window.location.href = "/checkout/confirmation"; // Redirect manually after clearing the cart
+        try {
+            const res = await fetch("/api/create-preference", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items: cart }),
+            });
+
+            const data = await res.json();
+            if (data.init_point) {
+                window.location.href = data.init_point;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error creating MercadoPago session");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-12">
-            <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
+        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* LEFT SIDE */}
+            <div className="lg:col-span-2 space-y-6">
+                <h1 className="text-2xl font-bold">MY CART</h1>
+                <Separator />
 
-            {cart.length === 0 ? (
-                <p className="text-gray-600">Your cart is empty.</p>
-            ) : (
-                <div className="space-y-6">
-                    {cart.map((item) => (
+                {cart.length === 0 ? (
+                    <p className="text-gray-600">Your cart is empty.</p>
+                ) : (
+                    cart.map((item) => (
                         <div
                             key={item.id + String(item.isSubscription) + (item.interval ?? "")}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-4"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-6"
                         >
-                            <div className="flex items-center gap-4">
-                                <img
-                                    src={item.image}
-                                    alt={item.name}
-                                    className="w-20 h-20 object-cover rounded-md"
-                                />
-                                <div>
-                                    <h3 className="font-semibold">{item.name}</h3>
-                                    <p className="text-sm text-gray-600">
-                                        {item.isSubscription
-                                            ? `Subscription: Every ${item.interval} month(s)`
-                                            : "One-time purchase"}
+                            <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-32 h-32 object-cover rounded-md border"
+                            />
+                            <div className="flex flex-col flex-1">
+                                <h3 className="font-semibold">{item.name}</h3>
+                                {item.isSubscription && (
+                                    <p className="text-sm text-gray-500">
+                                        Subscription: Every {item.interval} month{item.interval! > 1 ? "s" : ""}
                                     </p>
-                                </div>
+                                )}
                             </div>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                    >
-                                        −
-                                    </Button>
-                                    <span className="w-6 text-center">{item.quantity}</span>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                    >
-                                        +
-                                    </Button>
-                                </div>
+                            {/* QUANTITY */}
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                    className="cursor-pointer"
+                                >
+                                    −
+                                </Button>
+                                <Input
+                                    type="text"
+                                    value={item.quantity}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const parsed = parseInt(value);
+                                        if (!isNaN(parsed)) {
+                                            handleQuantityChange(item.id, parsed);
+                                        }
+                                    }}
+                                    className="w-16 text-center no-arrows cursor-text"
+                                />
+                                <Button
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                    className="cursor-pointer"
+                                >
+                                    +
+                                </Button>
+                            </div>
 
-                                <div className="text-right">
-                                    <p className="font-semibold">${item.price * item.quantity}</p>
-                                    <Button
-                                        variant="link"
-                                        className="text-red-600 p-0 h-auto text-sm"
-                                        onClick={() => removeFromCart(item.id)}
-                                    >
-                                        Remove
-                                    </Button>
-                                </div>
+                            <div className="text-right">
+                                <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                                <Button
+                                    variant="link"
+                                    className="text-red-500 text-sm p-0 cursor-pointer"
+                                    onClick={() => removeFromCart(item.id)}
+                                >
+                                    Remove
+                                </Button>
                             </div>
                         </div>
-                    ))}
+                    ))
+                )}
 
-                    {/* Checkout Summary */}
-                    <div className="border-t pt-6 space-y-4">
-                        <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Subtotal</span>
-                            <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
+                {/* NOTICE */}
+                {cart.length > 0 && (
+                    <Card className="bg-orange-50 border-0">
+                        <CardContent className="p-6 flex flex-col gap-3 sm:flex-row justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                                <span>🚚</span>
+                                <span>
+                                    $2 Shipping on all blades. Free shipping above $18.{" "}
+                                    <a href="#" className="underline">Details</a>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span>💳</span>
+                                <span>
+                                    30-day Money Back Guarantee.{" "}
+                                    <a href="#" className="underline">Details</a>
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* RIGHT SIDE */}
+            <div className="space-y-6">
+                <Card className="bg-orange-50 border-0">
+                    <CardContent className="p-6 space-y-4">
+                        <h2 className="text-xl font-bold">ORDER SUMMARY</h2>
+
+                        <div className="flex justify-between text-sm">
+                            <span>Subtotal ({cart.length} item{cart.length !== 1 ? "s" : ""})</span>
+                            <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Estimated Taxes (15%)</span>
-                            <span className="text-sm font-medium">${taxes.toFixed(2)}</span>
+
+                        {subtotal < 18 && (
+                            <div className="bg-white text-center text-sm py-2 border rounded">
+                                ${remainingForFreeShipping.toFixed(2)} away from free shipping
+                            </div>
+                        )}
+
+                        <div className="flex justify-between text-sm">
+                            <span>Discounts</span>
+                            <span>−$0.00</span>
                         </div>
-                        <div className="flex justify-between border-t pt-4 text-lg font-bold">
-                            <span>Total</span>
+
+                        <div className="flex justify-between text-sm">
+                            <span>Shipping & Handling</span>
+                            <span>Calculated at checkout</span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                            <span>Taxes</span>
+                            <span>Calculated at checkout</span>
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex justify-between font-bold text-base">
+                            <span>Estimated Total</span>
                             <span>${total.toFixed(2)}</span>
                         </div>
 
-                        {/* Proceed to Checkout Button */}
                         <Button
-                            className="w-full mt-4 text-base font-semibold"
+                            className="w-full text-base font-semibold mt-4 cursor-pointer"
                             onClick={handleCheckout}
                             disabled={loading}
                         >
                             {loading ? "Processing..." : "Proceed to Checkout"}
                         </Button>
 
-                        {/* Clear Cart Button */}
                         <Button
                             variant="ghost"
-                            className="text-red-600 w-full text-sm"
+                            className="text-red-600 w-full text-sm cursor-pointer"
                             onClick={clearCart}
                         >
                             Clear Cart
                         </Button>
-                    </div>
-                </div>
-            )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
