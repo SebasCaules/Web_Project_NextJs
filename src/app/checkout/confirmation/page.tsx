@@ -13,17 +13,6 @@ export default function ConfirmationPage() {
     const taxes = Math.round(total * 0.15 * 100) / 100;
     const finalTotal = Math.round((total + taxes) * 100) / 100;
 
-    // Solo limpiamos el carrito después de que el componente se haya montado
-    useEffect(() => {
-        if (isMounted) {
-            clearCart(); // Solo borra el carrito después de montar el componente
-        }
-    }, [isMounted, clearCart]);
-
-    // Establecemos isMounted a true después de que el componente haya sido montado
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     // Evitamos el renderizado hasta que el componente se haya montado
     if (!isMounted) return null;
@@ -53,7 +42,6 @@ export default function ConfirmationPage() {
             <Button
                 className="w-full mt-4 text-base font-semibold"
                 onClick={() => {
-                    clearCart(); // Limpia antes de ir al checkout
                     window.location.href = "/checkout/confirmation"; // redirige al usuario
                 }}
             >
