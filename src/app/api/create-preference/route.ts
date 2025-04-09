@@ -10,7 +10,13 @@ const preferenceClient = new Preference(mp);
 export async function POST(req: NextRequest) {
     const body = await req.json();
 
-    const items = body.items.map((item: any) => ({
+    type Item = {
+        name: string;
+        price: number;
+        quantity: number;
+    };
+
+    const items = (body.items as Item[]).map((item) => ({
         title: item.name,
         quantity: item.quantity,
         unit_price: item.price,
