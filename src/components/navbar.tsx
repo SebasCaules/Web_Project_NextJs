@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { Menu, Search, ShoppingCart, User} from "lucide-react";
+import { Menu, Search, ShoppingCart, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/context/cart-context";
 import {
     Sheet,
     SheetContent,
@@ -13,6 +14,8 @@ import {
 export default function Navbar() {
     const [showSearch, setShowSearch] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
+    const { cart } = useCart();
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -74,7 +77,14 @@ export default function Navbar() {
                     </button>
 
                     <Link href="/cart">
-                        <ShoppingCart className="w-5 h-5 cursor-pointer text-gray-700 hover:text-black" />
+                        <div className="relative">
+                            <ShoppingCart className="w-5 h-5 text-gray-700 hover:text-black" />
+                            {totalItems > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                                    {totalItems}
+                                </span>
+                            )}
+                        </div>
                     </Link>
                     <Link href="/account">
                         <User className="w-5 h-5 cursor-pointer text-gray-700 hover:text-black" />

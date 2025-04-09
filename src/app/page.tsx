@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -24,9 +25,9 @@ export default function Home() {
               Quality razors, delivered to your door. No hassle, no overpaying.
             </p>
             <Link href="/get-started">
-              <button className="bg-orange-500 text-white text-lg font-semibold px-8 py-4 rounded-full hover:bg-orange-600 transition">
+              <Button className="bg-orange-500 text-white text-lg font-semibold px-8 py-4 rounded-full hover:bg-orange-600 transition cursor-pointer">
                 {"LET'S DO IT"}
-              </button>
+              </Button>
             </Link>
           </div>
         </div>
