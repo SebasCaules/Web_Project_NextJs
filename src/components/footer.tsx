@@ -1,7 +1,32 @@
+"use client";
+
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 export default function Footer() {
+    const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleNewsletterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const { error } = await supabase.from("newsletter").insert({ email });
+
+        if (error) {
+            console.error("Error subscribing to newsletter:", error);
+            toast.error("There was a problem. Please try again.");
+        } else {
+            toast.success("You're now subscribed! Check your inbox.");
+            setEmail("");
+        }
+
+        setLoading(false);
+    };
+
     return (
         <footer className="bg-[#001F3F] text-white px-6 py-12 text-sm">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -24,7 +49,9 @@ export default function Footer() {
                     <Link href="#">Gift Cards</Link>
                     <Link href="#">Privacy Policy</Link>
                     <Link href="#">Accessibility</Link>
-                    <Link href="#" className="text-white font-bold">Do Not Sell Or Share My Personal Information</Link>
+                    <Link href="#" className="text-white font-bold">
+                        Do Not Sell Or Share My Personal Information
+                    </Link>
                 </div>
 
                 {/* Columna 3: Newsletter */}
@@ -33,26 +60,35 @@ export default function Footer() {
                     <p className="mb-4 text-gray-200">
                         Sign up to receive access to our latest updates and best offers, plus get 25% off your first order.
                     </p>
-                    <form className="flex flex-col gap-3">
-                        <Input placeholder="Email" className="bg-[#001F3F] border border-gray-300 text-white" />
-                        <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4">
-                            LETS DO IT
+                    <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
+                        <Input
+                            placeholder="Email"
+                            className="bg-[#001F3F] border border-gray-300 text-white"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            type="email"
+                            required
+                        />
+                        <button
+                            type="submit"
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 disabled:opacity-50"
+                            disabled={loading}
+                        >
+                            {loading ? "Submitting..." : "LET'S DO IT"}
                         </button>
                     </form>
                     <p className="text-xs text-gray-400 mt-3">
-                        By submitting this form and signing up for emails, you consent to receive marketing... <Link href="#" className="underline">Privacy Policy & Terms</Link>.
+                        By submitting this form and signing up for emails, you consent to receive marketing...{' '}
+                        <Link href="#" className="underline">Privacy Policy & Terms</Link>.
                     </p>
                 </div>
             </div>
 
-            {/* Línea inferior */}
             <div className="max-w-7xl mx-auto mt-12 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-xs border-t border-gray-700 pt-6">
                 <div className="flex items-center gap-4">
                     <span>© 2025, Dollar Shave Club. All Rights Reserved.</span>
                     <Link href="#">California Notice at Collection of Personal Information</Link>
                 </div>
-
-                {/* Selector de país (fake) */}
                 <div className="flex items-center gap-2 border border-white px-3 py-1 rounded">
                     <span role="img" aria-label="US">🇺🇸</span>
                     <span>US</span>

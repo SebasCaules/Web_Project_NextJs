@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, Search, ShoppingCart, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/context/cart-context";
+import { useUser } from "@/context/user-context";
 import {
     Sheet,
     SheetContent,
@@ -16,6 +17,7 @@ export default function Navbar() {
     const searchRef = useRef<HTMLDivElement>(null);
     const { cart } = useCart();
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const { user } = useUser();
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -86,8 +88,17 @@ export default function Navbar() {
                             )}
                         </div>
                     </Link>
-                    <Link href="/account">
-                        <User className="w-5 h-5 cursor-pointer text-gray-700 hover:text-black" />
+                    <Link href="/profile">
+                        <div className="flex items-center gap-2">
+                            {user ? (
+                                <div className="flex items-center gap-1">
+                                    <User className="w-5 h-5 text-gray-700" />
+                                    <span className="text-sm font-semibold text-gray-700">Hola, {user.name}</span>
+                                </div>
+                            ) : (
+                                <User className="w-5 h-5 cursor-pointer text-gray-700 hover:text-black" />
+                            )}
+                        </div>
                     </Link>
 
                     {/* Menú hamburguesa para mobile */}
@@ -103,7 +114,7 @@ export default function Navbar() {
                                     <Link href="/about" className="hover:text-black transition">About</Link>
                                     <Link href="/faq" className="hover:text-black transition">FAQ</Link>
                                     <hr className="my-2" />
-                                    <Link href="/account" className="hover:text-black transition">My Account</Link>
+                                    <Link href="/profile" className="hover:text-black transition">My Account</Link>
                                     <Link href="/cart" className="hover:text-black transition">Cart</Link>
                                 </div>
                             </SheetContent>
@@ -111,6 +122,6 @@ export default function Navbar() {
                     </div>
                 </div>
             </nav>
-        </header>
+        </header >
     );
 }

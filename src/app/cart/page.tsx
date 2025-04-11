@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function CartPage() {
     const { cart, addToCart, removeFromCart, clearCart } = useCart();
@@ -14,6 +16,7 @@ export default function CartPage() {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const remainingForFreeShipping = Math.max(0, 18 - subtotal);
     const total = subtotal;
+    const router = useRouter();
 
     const handleQuantityChange = (itemId: number, quantity: number) => {
         if (quantity < 1) return;
@@ -24,24 +27,40 @@ export default function CartPage() {
     };
 
     const handleCheckout = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/create-preference", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ items: cart }),
-            });
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
 
-            const data = await res.json();
-            if (data.init_point) {
-                window.location.href = data.init_point;
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error creating MercadoPago session");
-        } finally {
-            setLoading(false);
+        if (!user) {
+            alert("You must be logged in to proceed");
+            return;
         }
+
+        // Guardar en sessionStorage por si lo necesitás en confirmation
+        sessionStorage.setItem("lastOrder", JSON.stringify(cart));
+
+        const orderData = {
+            items: cart,
+            created_at: new Date().toISOString(),
+            user_email: user.email,
+        };
+
+        console.log("Sending orderData to backend:", orderData); // <-- CLAVE
+
+        const res = await fetch("/api/save-order", {
+            method: "POST",
+            body: JSON.stringify(orderData),
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Failed to save order:", res.status, errorText);
+            return;
+        }
+
+        // Redirigir al usuario
+        router.push("/checkout/confirmation");
     };
 
     return (
@@ -196,6 +215,9 @@ export default function CartPage() {
                         >
                             Clear Cart
                         </Button>
+
+
+
                     </CardContent>
                 </Card>
             </div>

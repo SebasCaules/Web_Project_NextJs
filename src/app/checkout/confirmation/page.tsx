@@ -7,13 +7,42 @@ import type { CartItem } from "@/context/cart-context";
 
 export default function ConfirmationPage() {
     const [order, setOrder] = useState<CartItem[] | null>(null);
+    const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         const stored = sessionStorage.getItem("lastOrder");
+
         if (stored) {
-            setOrder(JSON.parse(stored));
+            const parsed = JSON.parse(stored) as CartItem[];
+            setOrder(parsed);
+
+            const subtotal = parsed.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+            // Solo enviar al backend si no se envió antes
+            if (!submitted) {
+                fetch("/api/orders", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        cart: parsed,
+                        total: Math.round((subtotal + subtotal * 0.15) * 100) / 100,
+                    }),
+                })
+                    .then((res) => {
+                        if (!res.ok) throw new Error("Error saving order");
+                        return res.json();
+                    })
+                    .then(() => {
+                        setSubmitted(true);
+                    })
+                    .catch((err) => {
+                        console.error("Failed to submit order", err);
+                        setError("We couldn't save your order. Please contact support.");
+                    });
+            }
         }
-    }, []);
+    }, [submitted]);
 
     const subtotal = order?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
     const taxes = Math.round(subtotal * 0.15 * 100) / 100;
@@ -25,6 +54,10 @@ export default function ConfirmationPage() {
             <p className="text-gray-600 mb-8">
                 Your order has been confirmed. You’ll receive an email with the details shortly.
             </p>
+
+            {error && (
+                <p className="text-red-600 text-sm mb-4">{error}</p>
+            )}
 
             {order && order.length > 0 ? (
                 <div className="bg-gray-100 rounded-md p-6 text-left space-y-3 mb-8">
