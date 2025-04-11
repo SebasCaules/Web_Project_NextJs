@@ -23,22 +23,25 @@ export async function POST(req: Request) {
         const body = await req.json();
         const parsed = OrderSchema.parse(body);
 
+        // Validar columnas disponibles
         const { error } = await supabaseAdmin
             .from("orders")
-            .insert({
-                user_id: parsed.user_id,
-                items: parsed.items,
-                total: parsed.total
-            });
+            .insert([
+                {
+                    user_id: parsed.user_id,
+                    total: parsed.total,
+                    items: parsed.items // Asegurate que esta columna exista y sea tipo JSON
+                }
+            ]);
 
         if (error) {
-            console.error("Insert error:", error);
+            console.error("Supabase insert error:", error.message);
             return new Response("Failed to insert order", { status: 500 });
         }
 
         return new Response("Order saved", { status: 200 });
-    } catch (err) {
-        console.error("Validation or server error:", err);
+    } catch (err: any) {
+        console.error("Validation or server error:", err.message ?? err);
         return new Response("Invalid data", { status: 400 });
     }
 }

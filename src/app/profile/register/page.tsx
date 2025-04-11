@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import classNames from "classnames";
-import { supabase } from "@/lib/supabaseClient";
 
 export default function RegisterPage() {
     const [form, setForm] = useState({
@@ -36,39 +35,25 @@ export default function RegisterPage() {
 
     const handleRegister = async () => {
         setError("");
-        setLoading(true);
         setSuccessMessage("");
+        setLoading(true);
 
-        const { data, error } = await supabase.auth.signUp({
-            email: form.email,
-            password: form.password,
-            options: {
-                data: {
-                    name: form.name,
-                    lastName: form.lastName,
-                },
-                emailRedirectTo: `${window.location.origin}/auth/confirmation`,
-            },
+        const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(form),
         });
 
-        console.log("Supabase response:", { data, error });
-
+        const result = await res.json();
         setLoading(false);
 
-        if (error) {
-            if (
-                error.message.toLowerCase().includes("already") ||
-                error.message.toLowerCase().includes("exist") ||
-                error.status === 400
-            ) {
-                setError("This email is already registered. Try logging in instead.");
-            } else {
-                setError(error.message);
-            }
+        if (!res.ok) {
+            setError(result.message || "Something went wrong. Please try again.");
             return;
         }
 
-        setSuccessMessage("Check your inbox to confirm your registration.");
+        setSuccessMessage(result.message);
+        setForm({ name: "", lastName: "", email: "", password: "" });
     };
 
     return (
@@ -81,7 +66,7 @@ export default function RegisterPage() {
                 ) : (
                     <>
                         <div className="space-y-4">
-                            {/* First Name */}
+                            {/* Nombre */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-700 uppercase mb-1 block">First Name</label>
                                 <Input
@@ -93,7 +78,7 @@ export default function RegisterPage() {
                                 />
                             </div>
 
-                            {/* Last Name */}
+                            {/* Apellido */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-700 uppercase mb-1 block">Last Name</label>
                                 <Input

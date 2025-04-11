@@ -3,28 +3,55 @@
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function Footer() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
     const handleNewsletterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-
-        const { error } = await supabase.from("newsletter").insert({ email });
-
-        if (error) {
-            console.error("Error subscribing to newsletter:", error);
-            toast.error("There was a problem. Please try again.");
-        } else {
-            toast.success("You're now subscribed! Check your inbox.");
-            setEmail("");
+        setMessage("");
+        setMessageType("");
+    
+        try {
+            const res = await fetch("/api/newsletter", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+    
+            const isJson = res.headers.get("content-type")?.includes("application/json");
+    
+            const result = isJson ? await res.json() : {};
+    
+            if (res.status === 409) {
+                setMessage(result.message || "This email is already subscribed.");
+                setMessageType("error");
+            } else if (!res.ok) {
+                setMessage(result.message || "There was a problem. Please try again.");
+                setMessageType("error");
+            } else {
+                setMessage(result.message || "You're now subscribed!");
+                setMessageType("success");
+                setEmail("");
+            }
+    
+            setTimeout(() => {
+                setMessage("");
+                setMessageType("");
+            }, 4000);
+        } catch (err) {
+            setMessage("Unexpected error. Please try again.");
+            setMessageType("error");
+    
+            // No hacemos console.error(err) para evitar spam visual en consola
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     return (
@@ -71,12 +98,31 @@ export default function Footer() {
                         />
                         <button
                             type="submit"
-                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 disabled:opacity-50"
                             disabled={loading}
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {loading ? "Submitting..." : "LET'S DO IT"}
+                            {loading ? (
+                                <>
+                                    <Loader2 className="animate-spin h-5 w-5" /> Submitting...
+                                </>
+                            ) : (
+                                "LET'S DO IT"
+                            )}
                         </button>
+
+                        {/* Mensaje visual abajo del botón */}
+                        {message && (
+                            <div
+                                className={`text-sm mt-1 ${messageType === "success"
+                                        ? "text-green-400"
+                                        : "text-red-400"
+                                    }`}
+                            >
+                                {message}
+                            </div>
+                        )}
                     </form>
+
                     <p className="text-xs text-gray-400 mt-3">
                         By submitting this form and signing up for emails, you consent to receive marketing...{' '}
                         <Link href="#" className="underline">Privacy Policy & Terms</Link>.
@@ -84,6 +130,7 @@ export default function Footer() {
                 </div>
             </div>
 
+            {/* Pie de página */}
             <div className="max-w-7xl mx-auto mt-12 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-xs border-t border-gray-700 pt-6">
                 <div className="flex items-center gap-4">
                     <span>© 2025, Dollar Shave Club. All Rights Reserved.</span>
